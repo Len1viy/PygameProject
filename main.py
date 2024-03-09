@@ -1,6 +1,6 @@
 import pygame
 from Level.Level import Level
-from Sprites import all_sprites, tiles_group, characters_group
+from Sprites import tiles_group, characters_group, tile_width, tile_height, Cell
 
 pygame.init()
 size = width, height = 1000, 1000
@@ -19,6 +19,10 @@ while running:
         if event.type == pygame.MOUSEBUTTONDOWN:
             # board.getClick(event.pos)
             pass
+        if event.type == pygame.MOUSEMOTION:
+            y = event.pos[1] // tile_height
+            x = event.pos[0] // tile_width
+            level.hover(x, y)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_d:
                 level.movePlayer("right")
