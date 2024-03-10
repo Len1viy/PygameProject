@@ -3,7 +3,7 @@ from Level.Level import Level
 from Sprites import tiles_group, characters_group, tile_width, tile_height, Cell
 
 pygame.init()
-size = width, height = 1000, 1000
+size = width, height = 640, 480
 screen = pygame.display.set_mode(size)
 
 level = Level()

@@ -60,11 +60,7 @@ class Level:
         pass
 
     def unselectOther(self, x, y):
-        l1 = []
-        for i in range(x - 1, x + 2):
-            for j in range(y - 1, y + 2):
-                if 0 <= i <= self.width - 1 and 0 <= j <= self.height:
-                    l1.append([j, i, self.map[j][i].tileType])
-                    if self.map[j][i] != self.map[y][x] and self.map[j][i].tileType == "tile_underAttack":
-                        self.map[j][i].changeType("tile")
-        print(l1)
+        for i in range(self.width):
+            for j in range(self.height):
+                if self.map[j][i] != self.map[y][x] and self.map[j][i].tileType == "tile_underAttack":
+                    self.map[j][i].changeType("tile")
