@@ -1,5 +1,5 @@
 from Sprites import Cell
-from Sprites import Operative, Enemy
+from Sprites import Operative
 
 
 class Level:
@@ -8,7 +8,6 @@ class Level:
         self.width, self.height = 0, 0
         self.character = 0
         self.enemies = []
-        self.side = "player"
 
     def load_level(self, directory):
         dir_with_level = "data/ConfigurationsFiles/" + directory
@@ -25,11 +24,8 @@ class Level:
                 if charactersFile.readline().strip() == "Operative":
                     x = int(charactersFile.readline().strip())
                     y = int(charactersFile.readline().strip())
+                    print(x, y)
                     self.character = Operative(x, y)
-                if charactersFile.readline().strip() == "Wild":
-                    x = int(charactersFile.readline().strip())
-                    y = int(charactersFile.readline().strip())
-                    self.enemies.append(Enemy(x, y))
 
         # return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
@@ -44,24 +40,15 @@ class Level:
                 elif self.map[y][x] == "-":
                     self.map[y][x] = Cell('tile', x, y)
 
-    def tick(self, *instruction):
-        if self.side == "player":
-            self.movePlayer(instruction)
-        else:
-            self.moveEnemy()
-
-
     def movePlayer(self, instruction):
-        if instruction[0] == "left" and self.character.x > 0:
+        if instruction == "left" and self.character.x > 0:
             self.character.move("left", self.map)
-        elif instruction[0] == "right" and self.character.x < self.width - 1:
+        elif instruction == "right" and self.character.x < self.width - 1:
             self.character.move("right", self.map)
-        elif instruction[0] == "up" and self.character.y > 0:
+        elif instruction == "up" and self.character.y > 0:
             self.character.move("up", self.map)
-        elif instruction[0] == 'down' and self.character.y < self.height - 1:
+        elif instruction == 'down' and self.character.y < self.height - 1:
             self.character.move("down", self.map)
-        elif instruction[0] == "shot":
-            self.character.shot(instruction[1], instruction[2], self.map)
 
     def hover(self, x, y):
         if 0 <= x <= self.width - 1 and 0 <= y <= self.height - 1:
@@ -70,8 +57,7 @@ class Level:
             self.unselectOther(x, y)
 
     def moveEnemy(self):
-        for i in self.enemies:
-            i.move()
+        pass
 
     def unselectOther(self, x, y):
         for i in range(self.width):
