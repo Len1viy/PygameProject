@@ -23,6 +23,9 @@ level.generateLevel()
 x = 0
 y = 0
 
+clock = pygame.time.Clock()
+dt = 0
+FPS = 60
 # board.set_view(10, 10, 100)
 running = True
 camera = Camera(width, height, level.character)
@@ -54,10 +57,16 @@ while running:
 
     setInformation(surf, level.character)
     screen.fill("sienna")
+    dt += clock.tick(FPS) / 1000
+
     tiles_group.draw(screen)
+    if dt >= 1:
+        dt = 0
+        level.moveEnemy()
     camera.update()
     for sprite in all_sprites:
         camera.apply(sprite)
+
     characters_group.draw(screen)
     screen.blit(surf, (10, 10))
     pygame.display.flip()

@@ -71,7 +71,7 @@ class Level:
 
     def moveEnemy(self):
         for i in self.enemies:
-            i.move()
+            i.move(self.map)
 
     def unselectOther(self, x, y):
         for i in range(self.width):

@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import pygame
 
@@ -77,6 +78,10 @@ class Camera:
         if self.dx != 0 or self.dy != 0:
             if obj != self.target:
                 obj.update()
+        # else:
+        #     if obj in characters_group and obj != self.target:
+        #         obj.update()
+        #         print(self.dx, self.dy)
         obj.rect.x += self.dx
         obj.rect.y += self.dy
 
@@ -180,8 +185,14 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = tile_width * self.x
         self.rect.y = tile_height * self.y
 
-    def move(self):
-        pass
+    def move(self, map):
+        vars = (map[self.y - 1][self.x], map[self.y + 1][self.x], map[self.y][self.x + 1], map[self.y][self.x - 1])
+        choice = random.choice(vars)
+        while not choice.canMove():
+            choice = random.choice(vars)
+        self.x = choice.x
+        self.y = choice.y
+        print(self.x, self.y)
 
 
 class Inventory:
