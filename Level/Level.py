@@ -79,7 +79,7 @@ class Level:
 
     def moveEnemy(self):
         for i in self.enemies:
-            i.move(self.map)
+            i.move(self, self.character)
 
     def unselectOther(self, x, y):
         for i in range(self.width):

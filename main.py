@@ -1,10 +1,10 @@
 import pygame
 from Level.Level import Level
 from Sprites import tiles_group, characters_group, tile_width, tile_height, all_sprites, Camera, setInformation, \
-    bullet_group, enemies_group, inventoryDraw, Weapon, cellItems_group, inventoryItems_group, activeWeapon_group, menuDraw, textMenu_group
+    bullet_group, enemies_group, inventoryDraw, Weapon, cellItems_group, inventoryItems_group, activeWeapon_group, menuDraw, textMenu_group, winMenuDraw
 import Sprites as sp
 
-WINDOWS = ("game", "inventory", "main-menu")
+WINDOWS = ("game", "inventory", "main-menu", "end-win", "end-lose")
 opened = WINDOWS[2]
 
 pygame.init()
@@ -20,6 +20,10 @@ inventorySurf.set_alpha(220)
 menuSurf = pygame.Surface((width, height))
 menuSurf.fill(pygame.Color((0, 178, 255)))
 
+winSurf = pygame.Surface((width, height))
+winSurf.fill(pygame.Color("white"))
+winSurf.set_alpha(180)
+
 level = Level()
 level.load_level("Level1")
 level.generateLevel()
@@ -34,14 +38,16 @@ level.map[1][1].addItemToCell(Weapon())
 level.map[1][1].addItemToCell(Weapon())
 level.map[1][1].addItemToCell(Weapon())
 level.map[1][1].addItemToCell(Weapon())
-level.character.inventory.addItem(Weapon())
-level.character.inventory.addItem(Weapon())
-level.character.inventory.addItem(Weapon())
-level.character.inventory.addItem(Weapon())
-level.character.inventory.addItem(Weapon())
-level.character.inventory.addItem(Weapon())
-level.character.inventory.addItem(Weapon())
-level.character.inventory.addItem(Weapon())
+level.character.inventory.addItem(Weapon("awp"))
+level.character.inventory.addItem(Weapon("ak"))
+
+# level.character.inventory.addItem(Weapon())
+# level.character.inventory.addItem(Weapon())
+# level.character.inventory.addItem(Weapon())
+# level.character.inventory.addItem(Weapon())
+# level.character.inventory.addItem(Weapon())
+# level.character.inventory.addItem(Weapon())
+# level.character.inventory.addItem(Weapon())
 
 
 x = 0
@@ -79,7 +85,7 @@ while running:
                 elif event.key == pygame.K_a:
                     level.tick("left")
                 elif event.key == pygame.K_h:
-                    print(len(cellItems_group))
+                    print(len(enemies_group))
                 elif event.key == pygame.K_TAB:
                     opened = WINDOWS[1]
         elif opened == WINDOWS[1]:
@@ -136,6 +142,16 @@ while running:
                         opened = WINDOWS[0]
                     else:
                         running = False
+        elif opened == WINDOWS[3] or opened == WINDOWS[4]:
+            if event.type == pygame.MOUSEMOTION:
+                textMenu_group.update(event)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                for elem in textMenu_group.sprites():
+                    choise = elem.update(event)
+                    if choise:
+                        break
+                if choise:
+                    running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 opened = WINDOWS[2]
@@ -144,6 +160,14 @@ while running:
     screen.fill("sienna")
     tiles_group.draw(screen)
     tick = clock.tick(FPS) / 1000
+    if len(enemies_group) == 0 and opened != WINDOWS[3]:
+        for elem in textMenu_group.sprites():
+            textMenu_group.remove(elem)
+        opened = WINDOWS[3]
+    elif len(characters_group) == 0 and opened != WINDOWS[4]:
+        for elem in textMenu_group.sprites():
+            textMenu_group.remove(elem)
+        opened = WINDOWS[4]
     if opened == WINDOWS[0]:
         setInformation(surf, level.character)
         dt += tick
@@ -169,6 +193,13 @@ while running:
     elif opened == WINDOWS[2]:
         menuDraw(menuSurf)
         screen.blit(menuSurf, (0, 0))
+    elif opened == WINDOWS[3]:
+        winMenuDraw(winSurf)
+        screen.blit(winSurf, (0, 0))
+    elif opened == WINDOWS[4]:
+        winMenuDraw(winSurf, False)
+        screen.blit(winSurf, (0, 0))
+
 
 
     pygame.display.flip()

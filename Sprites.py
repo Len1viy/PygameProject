@@ -3,6 +3,7 @@ import random
 import sys
 import pygame
 from math import sqrt
+from pprint import pprint
 from Level import Level
 
 tiles_group = pygame.sprite.Group()
@@ -43,7 +44,11 @@ character_images = {
 
 item_images = {
     "pistol": load_image('pistol.png'),
-    "selected_pistol": load_image('selected_pistol.png')
+    "selected_pistol": load_image('selected_pistol.png'),
+    "awp": load_image("awp.png"),
+    "selected_awp": load_image("selected_awp.png"),
+    "ak": load_image("ak.png"),
+    "selected_ak": load_image("selected_ak.png"),
 }
 
 menu_images = {
@@ -88,8 +93,6 @@ def inventoryDraw(surface: pygame.Surface, level):
     text = font.render(inventoryText, True, (255, 255, 255))
     inventorySur.blit(text, (widthEdge // 2 - text.get_width() // 2, 20))
     items = level.getItems(level.character.y, level.character.x)
-    if len(items):
-        print(len(items))
     dy = 50
     dx = 0
     cntCols = 0
@@ -116,9 +119,9 @@ def inventoryDraw(surface: pygame.Surface, level):
         cntRows += cntCols // 5
         cntCols = cntCols % 5
     inventoryItems_group.draw(inventorySur)
-
-    img = item_images[level.character.activeWeapon.type]
-    activeWeaponSur.blit(img, (widthMiddle // 2 - widthTexture // 2, 300))
+    level.character.activeWeapon.static(widthMiddle // 2 - widthTexture // 2, 300)
+    activeWeapon_group.add(level.character.activeWeapon)
+    activeWeapon_group.draw(activeWeaponSur)
 
     surface.blit(inventorySur, (widthEdge + widthMiddle, 0))
     surface.blit(activeWeaponSur, (widthEdge, 0))
@@ -130,6 +133,19 @@ def menuDraw(surface: pygame.Surface):
     font = pygame.font.Font(None, fontSize)
     if len(textMenu_group) != 2:
         start = Text("start")
+        exit = Text("exit")
+    textMenu_group.draw(surface)
+
+
+def winMenuDraw(surface: pygame.Surface, flag=True):
+    fontSize = 30
+    font = pygame.font.Font(None, fontSize)
+    if flag:
+        text = font.render("You won! Congrats", True, (0, 0, 0))
+    else:
+        text = font.render("You lost!:(", True, (0, 0, 0))
+    surface.blit(text, (220, 20))
+    if len(textMenu_group) != 2:
         exit = Text("exit")
     textMenu_group.draw(surface)
 
@@ -157,7 +173,6 @@ class Camera:
             if self.dx != 0 or self.dy != 0:
                 obj.update(self.x, self.y)
 
-    # позиционировать камеру на объекте target
     def update(self):
         # if self.dx != 0 or self.dy != 0:
         #     print(f'self.dx = {self.dx}; self.dy = {self.dy}')
@@ -221,11 +236,15 @@ class Cell(pygame.sprite.Sprite):
 
     def addItemToCell(self, item):
         self.items.append(item)
+        cellItems_group.add(item)
 
     def deleteItemFromCell(self, item):
         self.items.remove(item)
         cellItems_group.remove(item)
         return item
+
+    def __repr__(self):
+        return f'{self.x, self.y}'
 
 
 class Operative(pygame.sprite.Sprite):
@@ -249,10 +268,8 @@ class Operative(pygame.sprite.Sprite):
             self.y += 1
         elif direction == "up" and map[self.y - 1][self.x].canMove():
             self.y -= 1
-        # self.rect = self.image.get_rect().move(tile_width * self.x, tile_height * self.y)
         self.rect.x = tile_width * self.x
         self.rect.y = tile_height * self.y
-        # print(f'Players position: {self.rect.x}, {self.rect.y}')
 
     def shot(self, x, y, levelMap):
         if self.activeWeapon.bullets == 0 or x == self.x and y == self.y:
@@ -278,7 +295,12 @@ class Operative(pygame.sprite.Sprite):
 
     def use(self, item):
         self.inventory.addItem(self.activeWeapon)
+        self.inventory.deleteItem(item)
+        item.unselect()
+        activeWeapon_group.remove(self.activeWeapon)
+        inventoryItems_group.add(self.activeWeapon)
         self.activeWeapon = item
+        activeWeapon_group.add(item)
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -288,6 +310,7 @@ class Enemy(pygame.sprite.Sprite):
         self.x = pos_x
         self.y = pos_y
         self.hp = 100
+        self.radius = 5
         pygame.draw.line(self.image, pygame.Color("green"), (0, 0), (self.image.get_width(), 0), width=4)
         if self.hp:
             pygame.draw.line(self.image, pygame.Color("blue"), (0, 0), (self.image.get_width() / 100 * self.hp, 0),
@@ -303,14 +326,102 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = tile_width * self.x + dx
         self.rect.y = tile_height * self.y + dy
 
-    def move(self, map):
-        vars = (map[self.y - 1][self.x], map[self.y + 1][self.x], map[self.y][self.x + 1], map[self.y][self.x - 1])
-        choice = random.choice(vars)
-        while not choice.canMove():
+    def move(self, level, character):
+        if sqrt((character.x - self.x) ** 2 + (character.y - self.y) ** 2) > self.radius:
+            vars = (level.map[self.y - 1][self.x], level.map[self.y + 1][self.x], level.map[self.y][self.x + 1],
+                    level.map[self.y][self.x - 1])
             choice = random.choice(vars)
-        self.x = choice.x
-        self.y = choice.y
+            while not choice.canMove():
+                choice = random.choice(vars)
+            self.x = choice.x
+            self.y = choice.y
+        else:
+            ways = self.lee(level, (character.y, character.x))
+            # goTo = ''
+            # if len(ways) >= 2:
+            #     goTo
         # print(self.x, self.y)
+
+    def getCell(self):
+        return self.y, self.x
+
+    def lee(self, level, to):
+        if not to:
+            return
+
+        WALL = -1
+        BLANK = -2
+        W = level.width
+        H = level.height
+        ax = self.getCell()[1]
+        ay = self.getCell()[0]
+        bx = to[1]
+        by = to[0]
+        dx = (1, 0, -1, 0)
+        dy = (0, 1, 0, -1)
+        px = [0 for _ in range(W * H)]
+        py = [0 for _ in range(W * H)]
+        grid = [[0] * W for _ in range(H)]
+        if "wall" in level.map[ay][ax].tileType:
+            return
+
+        for i in range(H):
+            for j in range(W):
+                if i != ay and j != ax:
+                    if level.map[i][j].canMove() or (i == by and j == bx):
+                        grid[i][j] = BLANK
+                    else:
+                        grid[i][j] = WALL
+                # else:
+                #     print(i, j)
+        # for i in grid:
+        #     for j in i:
+        #         print(j, end=' ')
+        #     print()
+        # print("--------------")
+        d = 0
+        grid[ay][ax] = 0
+        stop = False
+        while not stop and grid[by][bx] == BLANK:
+            stop = True
+            for y in range(H):
+                for x in range(W):
+                    if grid[y][x] == d:  # ячейка (x, y) помечена числом d
+                        for k in range(4):  # проходим по всем непомеченным соседям
+                            iy, ix = y + dy[k], x + dx[k]
+                            if 0 <= iy < H and 0 <= ix < W and grid[iy][ix] == BLANK:
+                                stop = False  # найдены непомеченные клетки
+                                grid[iy][ix] = d + 1  # распространяем волну
+                    else:
+                        # print(f'grid[y][x] = {grid[y][x]} d = {d}')
+                        pass
+            d += 1
+        # print(grid[by][bx])
+        if grid[by][bx] == BLANK:
+            return
+
+        # восстановление пути
+        cnt = grid[by][bx]  # длина кратчайшего пути из(ax, ay) в(bx, by)
+        x = bx
+        y = by
+        d = cnt
+        while d > 0:
+            px[d] = x
+            py[d] = y  # записываем ячейку (x, y) в путь
+            d -= 1
+            for k in range(4):
+                iy, ix = y + dy[k], x + dx[k]
+                if 0 <= iy < H and 0 <= ix < W and grid[iy][ix] == d:
+                    x = x + dx[k]
+                    y = y + dy[k]  # переходим в ячейку, которая на 1 ближе к старту
+                    break
+        px[0] = ax
+        py[0] = ay  # теперь px[0..len] и py[0..len] - координаты ячеек пути
+        answer = []
+        print(f'cnt = {cnt}, to = {to}')
+        for i in range(cnt):
+            answer.append(level.map[py[i]][px[i]])
+        return answer
 
     def damage(self, dmg):
         if self.hp < dmg:
@@ -343,7 +454,6 @@ class Inventory:
     def deleteItem(self, item):
         self.items.remove(item)
         inventoryItems_group.remove(item)
-        cellItems_group.add(item)
 
 
 class Weapon(pygame.sprite.Sprite):
@@ -365,7 +475,12 @@ class Weapon(pygame.sprite.Sprite):
                 self.bullets = 5
                 self.maxBullets = 5
                 self.weight = 25
-                self.damage = 20
+                self.damage = 50
+            elif type == "ak":
+                self.bullets = 30
+                self.maxBullets = 30
+                self.weight = 30
+                self.damage = 25
 
     def static(self, x, y):
         self.rect = self.image.get_rect().move(x, y)
@@ -387,11 +502,8 @@ class Weapon(pygame.sprite.Sprite):
                 print("right")
             return self
 
-    def use(self, player):
-        pass
-
-    def reload(self):
-        self.bullets = self.maxBullets
+    def unselect(self):
+        self.image = self.notHover
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -528,6 +640,4 @@ class Text(pygame.sprite.Sprite):
 
         elif args and args[0].type == pygame.MOUSEBUTTONDOWN and \
                 self.rect.collidepoint(args[0].pos):
-            print("clicked")
             return self
-        print(f"{self.text}: self.image == self.hover {self.image == self.hover}")
