@@ -50,7 +50,7 @@ class Level:
         else:
             self.moveEnemy()
 
-    def getItems(self, x, y):
+    def getItems(self, y, x):
         return self.map[y][x].items
 
     def movePlayer(self, instruction):
@@ -65,10 +65,11 @@ class Level:
         elif instruction[0] == "shot":
             self.character.shot(instruction[1], instruction[2], self.map)
         elif instruction[0] == "take":
-            self.character.takeItem(self.map[self.character.y][self.character.y].deleteItemFromCell(instruction[1]))
+            self.character.takeItem(self.map[self.character.y][self.character.x].deleteItemFromCell(instruction[1]))
         elif instruction[0] == "drop":
-            self.map[self.character.y][self.character.y].addItemToCell(self.character.dropItem(instruction[1]))
-            # self.map[self.character.y][self.character.y].deleteItemFromCell(instruction[1])
+            self.map[self.character.y][self.character.x].addItemToCell(self.character.dropItem(instruction[1]))
+        elif instruction[0] == "use":
+            self.character.use(instruction[1])
 
     def hover(self, x, y):
         if 0 <= x <= self.width - 1 and 0 <= y <= self.height - 1:

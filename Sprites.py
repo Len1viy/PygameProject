@@ -33,6 +33,7 @@ tile_info = {
     'tile': [load_image('simple_tile.png'), all_sprites, tiles_group],
     'wall': [load_image('wall.png'), all_sprites, tiles_group, borders_group],
     'tile_underAttack': [load_image('tileUnderAttack.png'), all_sprites, tiles_group],
+    'mark': [load_image('mark.png'), all_sprites, tiles_group],
 }
 
 character_images = {
@@ -47,7 +48,9 @@ item_images = {
 
 menu_images = {
     "start": load_image("start.png"),
-    "exit": load_image("exit.png")
+    "exit": load_image("exit.png"),
+    "selected_start": load_image("selected_start.png"),
+    "selected_exit": load_image("selected_exit.png")
 }
 
 tile_width = tile_height = 32
@@ -61,7 +64,7 @@ def setInformation(surface, player):
     surface.blit(text, (10, 10))
     surface.blit(player.activeWeapon.image, (10, 30))
     text = font.render(
-        f'{player.activeWeapon.name.capitalize()}: {player.activeWeapon.bullets} / {player.activeWeapon.maxBullets}',
+        f'{player.activeWeapon.type.capitalize()}: {player.activeWeapon.bullets} / {player.activeWeapon.maxBullets}',
         True,
         (255, 255, 255))
     surface.blit(text, (70, 40))
@@ -85,6 +88,8 @@ def inventoryDraw(surface: pygame.Surface, level):
     text = font.render(inventoryText, True, (255, 255, 255))
     inventorySur.blit(text, (widthEdge // 2 - text.get_width() // 2, 20))
     items = level.getItems(level.character.y, level.character.x)
+    if len(items):
+        print(len(items))
     dy = 50
     dx = 0
     cntCols = 0
@@ -112,7 +117,7 @@ def inventoryDraw(surface: pygame.Surface, level):
         cntCols = cntCols % 5
     inventoryItems_group.draw(inventorySur)
 
-    img = item_images[level.character.activeWeapon.name]
+    img = item_images[level.character.activeWeapon.type]
     activeWeaponSur.blit(img, (widthMiddle // 2 - widthTexture // 2, 300))
 
     surface.blit(inventorySur, (widthEdge + widthMiddle, 0))
@@ -123,9 +128,11 @@ def inventoryDraw(surface: pygame.Surface, level):
 def menuDraw(surface: pygame.Surface):
     fontSize = 30
     font = pygame.font.Font(None, fontSize)
-    start = Text("start")
-    exit = Text("exit")
+    if len(textMenu_group) != 2:
+        start = Text("start")
+        exit = Text("exit")
     textMenu_group.draw(surface)
+
 
 class Camera:
     def __init__(self, width, height, target):
@@ -200,11 +207,15 @@ class Cell(pygame.sprite.Sprite):
         if not self.image:
             print(f"Ничего не найдено. Типа {newType} не существует")
             sys.exit()
-        self.rect = self.image.get_rect().move(
-            self.rect.x, self.rect.y)
+        # self.rect = self.image.get_rect().move(
+        #     self.rect.x, self.rect.y)
         self.tileType = newType
 
     def update(self, dx, dy):
+        if len(self.items) and self.tileType != "mark":
+            self.changeType("mark")
+        elif not len(self.items) and self.tileType == "mark":
+            self.changeType("tile")
         self.rect.x = tile_width * self.x + dx
         self.rect.y = tile_height * self.y + dy
 
@@ -214,7 +225,6 @@ class Cell(pygame.sprite.Sprite):
     def deleteItemFromCell(self, item):
         self.items.remove(item)
         cellItems_group.remove(item)
-        item.rect.x, item.rect.y = -1000, -1000
         return item
 
 
@@ -263,7 +273,12 @@ class Operative(pygame.sprite.Sprite):
 
     def dropItem(self, item):
         self.inventory.deleteItem(item)
+        inventoryItems_group.remove(item)
         return item
+
+    def use(self, item):
+        self.inventory.addItem(self.activeWeapon)
+        self.activeWeapon = item
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -331,21 +346,12 @@ class Inventory:
         cellItems_group.add(item)
 
 
-class Item:
-    def __init__(self, type="weapon", weight=0):
-        self.type = type
-        self.weight = weight
-
-    def use(self, player):
-        raise NotImplementedError("Subclass must implement abstract method")
-
-
 class Weapon(pygame.sprite.Sprite):
     def __init__(self, type="pistol", *group):
         super().__init__(*group)
-        self.name = type
-        self.hover = item_images.get(f'selected_{self.name}')
-        self.notHover = item_images.get(self.name, False)
+        self.type = type
+        self.hover = item_images.get(f'selected_{self.type}')
+        self.notHover = item_images.get(self.type, False)
         self.image = self.notHover
         self.rect = self.image.get_rect().move(-10000, -10000)
 
@@ -495,30 +501,33 @@ class Bullet(pygame.sprite.Sprite):
             self.rect.y = self.rect.x * self.k + self.b
 
 
-
 class Text(pygame.sprite.Sprite):
     def __init__(self, text):
         super().__init__(textMenu_group)
-        self.image = menu_images[text]
+        self.text = text
+        self.notHover = menu_images[text]
+        self.image = self.notHover
+
         if text.lower() == "start":
             self.rect = self.image.get_rect().move(200, 100)
+            self.hover = menu_images["selected_start"]
         elif text.lower() == "exit":
             self.rect = self.image.get_rect().move(200, 200)
+            self.hover = menu_images["selected_exit"]
 
     def update(self, *args):
-        pass
-        # if not args:
-        #     return
-        # elif args and args[0].type == pygame.MOUSEMOTION and \
-        #         self.rect.collidepoint(args[0].pos):
-        #     self.image = self.hover
-        # elif args and args[0].type == pygame.MOUSEMOTION and not \
-        #         self.rect.collidepoint(args[0].pos):
-        #     self.image = self.notHover
-        # elif args and args[0].type == pygame.MOUSEBUTTONDOWN and \
-        #         self.rect.collidepoint(args[0].pos):
-        #     if args[0].button == 1:
-        #         print("left")
-        #     elif args[0].button == 3:
-        #         print("right")
-        #     return self
+        if not args:
+            return
+        elif args and args[0].type == pygame.MOUSEMOTION and \
+                self.rect.collidepoint(args[0].pos):
+            self.image = self.hover
+
+        elif args and args[0].type == pygame.MOUSEMOTION and not \
+                self.rect.collidepoint(args[0].pos):
+            self.image = self.notHover
+
+        elif args and args[0].type == pygame.MOUSEBUTTONDOWN and \
+                self.rect.collidepoint(args[0].pos):
+            print("clicked")
+            return self
+        print(f"{self.text}: self.image == self.hover {self.image == self.hover}")

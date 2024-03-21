@@ -1,7 +1,8 @@
 import pygame
 from Level.Level import Level
 from Sprites import tiles_group, characters_group, tile_width, tile_height, all_sprites, Camera, setInformation, \
-    bullet_group, enemies_group, inventoryDraw, Weapon, cellItems_group, inventoryItems_group, activeWeapon_group, menuDraw
+    bullet_group, enemies_group, inventoryDraw, Weapon, cellItems_group, inventoryItems_group, activeWeapon_group, menuDraw, textMenu_group
+import Sprites as sp
 
 WINDOWS = ("game", "inventory", "main-menu")
 opened = WINDOWS[2]
@@ -52,7 +53,7 @@ FPS = 60
 # board.set_view(10, 10, 100)
 running = True
 camera = Camera(width, height, level.character)
-
+choise = ""
 
 while running:
     # print(f"Character = {level.character.rect}")
@@ -78,8 +79,7 @@ while running:
                 elif event.key == pygame.K_a:
                     level.tick("left")
                 elif event.key == pygame.K_h:
-                    print(x, y)
-                    print(camera.x, camera.y)
+                    print(len(cellItems_group))
                 elif event.key == pygame.K_TAB:
                     opened = WINDOWS[1]
         elif opened == WINDOWS[1]:
@@ -93,7 +93,6 @@ while running:
                     inventoryItems_group.update(event)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    choise = ""
                     if event.pos[0] <= 240:
                         for elem in cellItems_group.sprites():
                             choise = elem.update(event)
@@ -109,10 +108,39 @@ while running:
                                 break
                         if choise:
                             level.tick("drop", choise)
+                elif event.button == 3:
+                    if event.pos[0] >= 400:
+                        event.pos = (event.pos[0] - 400, event.pos[1])
+                        for elem in inventoryItems_group.sprites():
+                            choise = elem.update(event)
+                            if choise:
+                                break
+                        if choise:
+                            level.tick("use", choise)
 
             if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_TAB:
                         opened = WINDOWS[0]
+                        for elem in cellItems_group.sprites():
+                            cellItems_group.remove(elem)
+        elif opened == WINDOWS[2]:
+            if event.type == pygame.MOUSEMOTION:
+                textMenu_group.update(event)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                for elem in textMenu_group.sprites():
+                    choise = elem.update(event)
+                    if choise:
+                        break
+                if choise:
+                    if choise.text == "start":
+                        opened = WINDOWS[0]
+                    else:
+                        running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                opened = WINDOWS[2]
+
+
     screen.fill("sienna")
     tiles_group.draw(screen)
     tick = clock.tick(FPS) / 1000
