@@ -3,8 +3,6 @@ import random
 import sys
 import pygame
 from math import sqrt
-from pprint import pprint
-from Level import Level
 
 tiles_group = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
@@ -20,8 +18,14 @@ activeWeapon_group = pygame.sprite.Group()
 textMenu_group = pygame.sprite.Group()
 
 
+def resource_path(relative):
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative)
+    return os.path.join(relative)
+
+
 def load_image(name, colorkey=None):
-    fullname = os.path.join('data/imgs', name)
+    fullname = name
     # если файл не существует, то выходим
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -31,31 +35,31 @@ def load_image(name, colorkey=None):
 
 
 tile_info = {
-    'tile': [load_image('simple_tile.png'), all_sprites, tiles_group],
-    'wall': [load_image('wall.png'), all_sprites, tiles_group, borders_group],
-    'tile_underAttack': [load_image('tileUnderAttack.png'), all_sprites, tiles_group],
-    'mark': [load_image('mark.png'), all_sprites, tiles_group],
+    'tile': [load_image(resource_path(os.path.join('data/imgs', 'simple_tile.png'))), all_sprites, tiles_group],
+    'wall': [load_image(resource_path(os.path.join('data/imgs', 'wall.png'))), all_sprites, tiles_group, borders_group],
+    'tile_underAttack': [load_image(resource_path(os.path.join('data/imgs', 'tileUnderAttack.png'))), all_sprites, tiles_group],
+    'mark': [load_image(resource_path(os.path.join('data/imgs', 'mark.png'))), all_sprites, tiles_group],
 }
 
 character_images = {
-    "oper": load_image('operative.png'),
-    "enemy": load_image('zombie_wild.png')
+    "oper": load_image(resource_path(os.path.join('data/imgs', 'operative.png'))),
+    "enemy": load_image(resource_path(os.path.join('data/imgs', 'zombie_wild.png')))
 }
 
 item_images = {
-    "pistol": load_image('pistol.png'),
-    "selected_pistol": load_image('selected_pistol.png'),
-    "awp": load_image("awp.png"),
-    "selected_awp": load_image("selected_awp.png"),
-    "ak": load_image("ak.png"),
-    "selected_ak": load_image("selected_ak.png"),
+    "pistol": load_image(resource_path(os.path.join('data/imgs', 'pistol.png'))),
+    "selected_pistol": load_image(resource_path(os.path.join('data/imgs', 'selected_pistol.png'))),
+    "awp": load_image(resource_path(os.path.join('data/imgs', "awp.png"))),
+    "selected_awp": load_image(resource_path(os.path.join('data/imgs', "selected_awp.png"))),
+    "ak": load_image(resource_path(os.path.join('data/imgs', "ak.png"))),
+    "selected_ak": load_image(resource_path(os.path.join('data/imgs', "selected_ak.png"))),
 }
 
 menu_images = {
-    "start": load_image("start.png"),
-    "exit": load_image("exit.png"),
-    "selected_start": load_image("selected_start.png"),
-    "selected_exit": load_image("selected_exit.png")
+    "start": load_image(resource_path(os.path.join('data/imgs', "start.png"))),
+    "exit": load_image(resource_path(os.path.join('data/imgs', "exit.png"))),
+    "selected_start": load_image(resource_path(os.path.join('data/imgs', "selected_start.png"))),
+    "selected_exit": load_image(resource_path(os.path.join('data/imgs', "selected_exit.png")))
 }
 
 tile_width = tile_height = 32
@@ -101,7 +105,6 @@ def inventoryDraw(surface: pygame.Surface, level):
         item = items[i]
         cellItems_group.add(item)
         items_group.add(item)
-        # print(widthTexture * cntCols + dx, end=" ")
         item.static(widthTexture * cntCols + dx, cntRows * heightTexture + dy)
         cntCols += 1
         cntRows += cntCols // 5
@@ -174,30 +177,19 @@ class Camera:
                 obj.update(self.x, self.y)
 
     def update(self):
-        # if self.dx != 0 or self.dy != 0:
-        #     print(f'self.dx = {self.dx}; self.dy = {self.dy}')
-        # else:
-        #     print(self.target.rect.x + self.target.rect.w // 2 - self.width // 2)
+
         self.dx = -(self.target.rect.x + self.target.rect.w // 2 - self.width // 2)
         self.dy = -(self.target.rect.y + self.target.rect.h // 2 - self.height // 2)
-        # print(self.dx, self.dy, self.x, self.y)
         if self.dx != 0:
             self.changeX = self.dx - self.x
             self.x += self.dx - self.x
-            print(f'self.dx = {self.dx}; self.dy = {self.dy}; self.changeX = {self.changeX}')
         else:
             self.changeX = 0
         if self.dy != 0:
             self.changeY = self.dy - self.y
             self.y += self.dy - self.y
-            # print(f'self.x = {self.x}; self.y = {self.y}')
         else:
             self.changeY = 0
-
-    def printData(self):
-        for i in tiles_group:
-            print(f"Sprite {i}. Rect: {i.rect}")
-        print(len(tiles_group))
 
 
 class Cell(pygame.sprite.Sprite):
@@ -279,7 +271,7 @@ class Operative(pygame.sprite.Sprite):
                 if 0 < y < len(levelMap):
                     self.activeWeapon.bullets -= 1
                     Bullet(self.rect.x, self.rect.y, levelMap[y][x].rect.x, levelMap[y][x].rect.y,
-                           self.activeWeapon.damage)
+                           self.activeWeapon.damage, self.activeWeapon.speed)
 
     def update(self, dx, dy):
         self.rect.x = tile_width * self.x + dx
@@ -302,15 +294,28 @@ class Operative(pygame.sprite.Sprite):
         self.activeWeapon = item
         activeWeapon_group.add(item)
 
+    def changeHp(self, hp):
+        if self.health < hp:
+            self.health = 0
+        else:
+            self.health -= hp
+
+        if not self.health:
+            all_sprites.remove(self)
+            characters_group.remove(self)
+            del self
+            return
+
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(enemies_group, all_sprites)
-        self.image = load_image('zombie_wild.png')
+        self.image = load_image(resource_path(os.path.join('data/imgs', 'zombie_wild.png')))
         self.x = pos_x
         self.y = pos_y
         self.hp = 100
         self.radius = 5
+        self.damage = 2
         pygame.draw.line(self.image, pygame.Color("green"), (0, 0), (self.image.get_width(), 0), width=4)
         if self.hp:
             pygame.draw.line(self.image, pygame.Color("blue"), (0, 0), (self.image.get_width() / 100 * self.hp, 0),
@@ -327,7 +332,21 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.y = tile_height * self.y + dy
 
     def move(self, level, character):
-        if sqrt((character.x - self.x) ** 2 + (character.y - self.y) ** 2) > self.radius:
+        flag = False
+        if sqrt((character.x - self.x) ** 2 + (character.y - self.y) ** 2) >= self.radius:
+            flag = True
+        elif self.canAttackToCell(character):
+            self.attack(character)
+        else:
+            ways = self.lee(level, (character.y, character.x))
+            goTo = ""
+            if len(ways) >= 2:
+                goTo = ways[1]
+                self.x = goTo.x
+                self.y = goTo.y
+            else:
+                flag = True
+        if flag:
             vars = (level.map[self.y - 1][self.x], level.map[self.y + 1][self.x], level.map[self.y][self.x + 1],
                     level.map[self.y][self.x - 1])
             choice = random.choice(vars)
@@ -335,19 +354,19 @@ class Enemy(pygame.sprite.Sprite):
                 choice = random.choice(vars)
             self.x = choice.x
             self.y = choice.y
-        else:
-            ways = self.lee(level, (character.y, character.x))
-            # goTo = ''
-            # if len(ways) >= 2:
-            #     goTo
-        # print(self.x, self.y)
+
+    def canAttackToCell(self, character):
+        return sqrt((character.x - self.x) ** 2 + (character.y - self.y) ** 2) <= sqrt(2)
+
+    def attack(self, character):
+        character.changeHp(self.damage)
 
     def getCell(self):
         return self.y, self.x
 
     def lee(self, level, to):
         if not to:
-            return
+            return []
 
         WALL = -1
         BLANK = -2
@@ -372,13 +391,7 @@ class Enemy(pygame.sprite.Sprite):
                         grid[i][j] = BLANK
                     else:
                         grid[i][j] = WALL
-                # else:
-                #     print(i, j)
-        # for i in grid:
-        #     for j in i:
-        #         print(j, end=' ')
-        #     print()
-        # print("--------------")
+
         d = 0
         grid[ay][ax] = 0
         stop = False
@@ -392,13 +405,9 @@ class Enemy(pygame.sprite.Sprite):
                             if 0 <= iy < H and 0 <= ix < W and grid[iy][ix] == BLANK:
                                 stop = False  # найдены непомеченные клетки
                                 grid[iy][ix] = d + 1  # распространяем волну
-                    else:
-                        # print(f'grid[y][x] = {grid[y][x]} d = {d}')
-                        pass
             d += 1
-        # print(grid[by][bx])
         if grid[by][bx] == BLANK:
-            return
+            return []
 
         # восстановление пути
         cnt = grid[by][bx]  # длина кратчайшего пути из(ax, ay) в(bx, by)
@@ -418,12 +427,11 @@ class Enemy(pygame.sprite.Sprite):
         px[0] = ax
         py[0] = ay  # теперь px[0..len] и py[0..len] - координаты ячеек пути
         answer = []
-        print(f'cnt = {cnt}, to = {to}')
         for i in range(cnt):
             answer.append(level.map[py[i]][px[i]])
         return answer
 
-    def damage(self, dmg):
+    def changeHp(self, dmg):
         if self.hp < dmg:
             self.hp = 0
         else:
@@ -471,17 +479,20 @@ class Weapon(pygame.sprite.Sprite):
                 self.maxBullets = 100
                 self.weight = 15
                 self.damage = 10
+                self.speed = 250
             elif type == "awp":
                 self.bullets = 5
                 self.maxBullets = 5
                 self.weight = 25
                 self.damage = 50
+                self.speed = 400
+
             elif type == "ak":
                 self.bullets = 30
                 self.maxBullets = 30
                 self.weight = 30
                 self.damage = 25
-
+                self.speed = 300
     def static(self, x, y):
         self.rect = self.image.get_rect().move(x, y)
 
@@ -496,10 +507,6 @@ class Weapon(pygame.sprite.Sprite):
             self.image = self.notHover
         elif args and args[0].type == pygame.MOUSEBUTTONDOWN and \
                 self.rect.collidepoint(args[0].pos):
-            if args[0].button == 1:
-                print("left")
-            elif args[0].button == 3:
-                print("right")
             return self
 
     def unselect(self):
@@ -507,9 +514,9 @@ class Weapon(pygame.sprite.Sprite):
 
 
 class Bullet(pygame.sprite.Sprite):
-    bullet = load_image("bullet.png")
+    bullet = load_image(resource_path(os.path.join('data/imgs', 'bullet.png')))
 
-    def __init__(self, start_posX, start_posY, end_posX, end_posY, damage):
+    def __init__(self, start_posX, start_posY, end_posX, end_posY, damage, speed=250):
         if start_posX == end_posX and start_posY == end_posY:
             return
         super().__init__(all_sprites, bullet_group)
@@ -519,7 +526,7 @@ class Bullet(pygame.sprite.Sprite):
         self.image = self.bullet
         self.rect = self.image.get_rect().move(
             self.x, self.y)
-        self.speed = 250
+        self.speed = speed
         self.damage = damage
         self.cos = (self.goalX - self.x) / (sqrt((self.goalY - self.y) ** 2 + (self.goalX - self.x) ** 2))
         self.sin = sqrt(1 - self.cos ** 2)
@@ -548,11 +555,6 @@ class Bullet(pygame.sprite.Sprite):
                 self.sin = -self.sin
             self.k = self.sin / self.cos
             self.b = self.goalY - self.k * self.goalX
-        #
-        # print(self.x, self.y)
-        #
-        # print(f"self.speed * self.cos = {self.speed * self.cos}; self.speed * self.sin = {self.speed * self.sin} self.k = {self.k}")
-        #
 
     def static(self, dx, dy):
         self.rect.x += dx
@@ -596,13 +598,11 @@ class Bullet(pygame.sprite.Sprite):
             del self
             return
         if pygame.sprite.spritecollideany(self, enemies_group):
-            pygame.sprite.spritecollideany(self, enemies_group).damage(self.damage)
+            pygame.sprite.spritecollideany(self, enemies_group).changeHp(self.damage)
             all_sprites.remove(self)
             bullet_group.remove(self)
             del self
             return
-        # print(f"BULLET HERE: {self.rect.x}, {self.rect.y}")
-        # print(f"self.speed * self.cos = {self.speed * self.cos}; self.speed * self.sin = {self.speed * self.sin}")
 
         if self.cos == 0:
             self.rect.y += self.speed * self.sin * dt

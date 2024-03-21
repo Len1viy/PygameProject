@@ -1,5 +1,6 @@
 from Sprites import Cell
 from Sprites import Operative, Enemy
+from Sprites import Weapon
 
 
 class Level:
@@ -13,7 +14,6 @@ class Level:
     def load_level(self, directory):
         dir_with_level = "data/ConfigurationsFiles/" + directory
         characters_for_level = dir_with_level + "/Characters"
-        items_for_level = dir_with_level + "/Items"
         maps_for_level = dir_with_level + "/Map"
         with open(maps_for_level, 'r') as mapFile:
             self.height = int(mapFile.readline().strip())
@@ -22,19 +22,22 @@ class Level:
         with open(characters_for_level, 'r') as charactersFile:
             size = int(charactersFile.readline().strip())
             for i in range(size):
-                if charactersFile.readline().strip() == "Operative":
+                character = charactersFile.readline().strip()
+                if character == "Operative":
                     x = int(charactersFile.readline().strip())
                     y = int(charactersFile.readline().strip())
                     self.character = Operative(x, y)
-                if charactersFile.readline().strip() == "Wild":
+                if character == "Wild":
                     x = int(charactersFile.readline().strip())
                     y = int(charactersFile.readline().strip())
                     self.enemies.append(Enemy(x, y))
 
         # return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
-    def generateLevel(self):
-        # new_player, x, y = None, None, None
+    def generateLevel(self, directory):
+        dir_with_level = "data/ConfigurationsFiles/" + directory
+
+        self.load_level(directory)
         for y in range(len(self.map)):
             for x in range(len(self.map[y])):
                 if self.map[y][x] == '0':
@@ -43,6 +46,19 @@ class Level:
                 #     Cell('wall', x, y)
                 elif self.map[y][x] == "-":
                     self.map[y][x] = Cell('tile', x, y)
+        items_for_level = dir_with_level + "/Items"
+        with open(items_for_level, "r") as itemsFile:
+            size = int(itemsFile.readline().strip())
+            for i in range(size):
+                item = itemsFile.readline().strip()
+                if item == "Pistol":
+                    x = int(itemsFile.readline().strip())
+                    y = int(itemsFile.readline().strip())
+                    self.map[y][x].addItemToCell(Weapon())
+                if item == "AWP":
+                    x = int(itemsFile.readline().strip())
+                    y = int(itemsFile.readline().strip())
+                    self.map[y][x].addItemToCell(Weapon("awp"))
 
     def tick(self, *instruction):
         if self.side == "player":
